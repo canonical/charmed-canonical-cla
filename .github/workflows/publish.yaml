@@ -12,16 +12,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set up Charmcraft
+        run: sudo snap install charmcraft --classic
+
       - name: Select charmhub channel
         uses: canonical/charming-actions/channel@2.4.0
         id: channel
+
+      - name: Pack charm
+        id: pack
+        run: |
+          sudo charmcraft pack -v --destructive-mode 2>&1 | tee charmcraft.log
+          CHARM=$(ls -1 *.charm | head -n 1)
+          [ -z "$CHARM" ] && exit 1       
+          echo "charm=$CHARM" >> $GITHUB_OUTPUT
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.CR_PAT }}" | docker login ghcr.io -u ${{ secrets.CR_USERNAME }} --password-stdin
+
       - name: Upload charm to charmhub
         uses: canonical/charming-actions/upload-charm@2.4.0
         with:
           credentials: "${{ secrets.CHARMCRAFT_TOKEN }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
-          upload-image: "false"
+          built-charm-path: "${{ steps.pack.outputs.charm }}"
+          upload-image: "true"
           channel: "${{ steps.channel.outputs.name }}"
