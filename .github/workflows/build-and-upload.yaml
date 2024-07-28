@@ -1,4 +1,4 @@
-name: Release
+name: Build and upload charm
 
 on:
   workflow_dispatch:
@@ -22,11 +22,9 @@ jobs:
         run: sudo snap install charmcraft --classic
 
       - name: Select charmhub channel
+        if: github.event_name == 'push'
         uses: canonical/charming-actions/channel@2.4.0
         id: channel
-
-      - name: Setup Rust for pydantic-core
-        uses: actions-rust-lang/setup-rust-toolchain@v1
 
       - name: Pack charm
         id: pack
@@ -46,4 +44,4 @@ jobs:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           built-charm-path: "${{ steps.pack.outputs.charm }}"
           upload-image: "true"
-          channel: "${{ steps.channel.outputs.name }}"
+          channel: "${{ github.event_name == 'push' && steps.channel.outputs.channel || 'latest/edge' }}"
