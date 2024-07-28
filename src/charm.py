@@ -5,6 +5,9 @@ import logging
 import ops
 from charms.data_platform_libs.v0.data_interfaces import (DatabaseCreatedEvent,
                                                           DatabaseRequires)
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
+from charms.loki_k8s.v0.loki_push_api import LogProxyConsumer
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)
@@ -21,6 +24,25 @@ class FastAPICharm(ops.CharmBase):
     def __init__(self, framework: ops.Framework):
         super().__init__(framework)
 
+        # Provide ability for prometheus to be scraped by Prometheus using prometheus_scrape
+        self._prometheus_scraping = MetricsEndpointProvider(
+            self,
+            relation_name="metrics-endpoint",
+            jobs=[
+                {"static_configs": [{"targets": [f"*:{self.config['server-port']}"]}]}],
+            refresh_event=self.on.config_changed,
+        )
+
+        # Enable log forwarding for Loki and other charms that implement loki_push_api
+        self._logging = LogProxyConsumer(
+            self, relation_name="log-proxy", log_files=["demo_server.log"]
+        )
+
+        # Provide grafana dashboards over a relation interface
+        self._grafana_dashboards = GrafanaDashboardProvider(
+            self, relation_name="grafana-dashboard")
+
+        # Charm events defined in the database requires charm library.
         self.database = DatabaseRequires(
             self, relation_name="database", database_name="names_db")
 
@@ -29,6 +51,7 @@ class FastAPICharm(ops.CharmBase):
         self.framework.observe(
             self.database.on.endpoints_changed, self._on_database_created)
 
+        # Define the charm events
         self.container = self.unit.get_container("app")
 
         framework.observe(self.on.config_changed, self._on_config_changed)
