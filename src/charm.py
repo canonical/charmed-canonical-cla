@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
 import logging
+from typing import Dict, Optional, cast
 
 import ops
 from charms.data_platform_libs.v0.data_interfaces import (DatabaseCreatedEvent,
                                                           DatabaseRequires)
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
-from charms.loki_k8s.v0.loki_push_api import LogProxyConsumer
+from charms.loki_k8s.v0.loki_push_api import LokiPushApiConsumer
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 
 # Log messages can be retrieved using juju debug-log
@@ -34,9 +35,8 @@ class FastAPICharm(ops.CharmBase):
         )
 
         # Enable log forwarding for Loki and other charms that implement loki_push_api
-        self._logging = LogProxyConsumer(
-            self, relation_name="log-proxy", log_files=["demo_server.log"]
-        )
+        self._logging = LokiPushApiConsumer(
+            self, relation_name="log-proxy")
 
         # Provide grafana dashboards over a relation interface
         self._grafana_dashboards = GrafanaDashboardProvider(
@@ -156,6 +156,7 @@ class FastAPICharm(ops.CharmBase):
                     },
                 }
             },
+            "log-targets": self._pebble_log_targets,
             "checks": {
                 "test": {
                     "override": "replace",
@@ -193,6 +194,27 @@ class FastAPICharm(ops.CharmBase):
             "DEMO_SERVER_DB_PASSWORD": db_data.get("db_password", None),
         }
         return env
+
+    @ property
+    def _pebble_log_targets(self) -> Dict[str, ops.pebble.LogTargetDict]:
+        """Return a dictionary representing a Pebble log target.
+
+        [Pebble docs](https://github.com/canonical/pebble?tab=readme-ov-file#log-forwarding)."""
+        loki_push_api = cast(
+            Optional[str], next(iter(self._logging.loki_endpoints), {}).get("url", None))
+
+        if not loki_push_api:
+            logger.error("Loki push api not available:",
+                         self._logging.loki_endpoints)
+            return {}
+        return {
+            "logs": {
+                "override": "merge",
+                "type": "loki",
+                "location": loki_push_api,
+                "services": ["app"]
+            }
+        }
 
     def fetch_postgres_relation_data(self):
         """Fetch postgres relation data.
