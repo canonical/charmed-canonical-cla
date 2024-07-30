@@ -126,7 +126,7 @@ class FastAPICharm(ops.CharmBase):
                     "override": "replace",
                     "startup": "enabled",
                     "working-dir": "app",
-                    "command": f"python3 -m fastapi run --host=0.0.0.0 --port={SERVICE_PORT} src/main.py",
+                    "command": f"fastapi run --host=0.0.0.0 --port={SERVICE_PORT} src/main.py",
                     "environment": self.app_environment,
                     "on-check-failure": {
                         # restart on checks.up failure
@@ -182,8 +182,7 @@ class FastAPICharm(ops.CharmBase):
             Optional[str], next(iter(self._logging.loki_endpoints), {}).get("url", None))
 
         if not loki_push_api:
-            logger.error("Loki push api not available:",
-                         self._logging.loki_endpoints)
+            logger.error("Loki push api not available")
             return {}
         return {
             "logs": {
