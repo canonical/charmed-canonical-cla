@@ -28,8 +28,7 @@ class FastAPICharm(ops.CharmBase):
             self,
             relation_name="metrics-endpoint",
             jobs=[
-                {"static_configs": [{"targets": [f"*:{SERVICE_PORT}"]}]}],
-            refresh_event=self.on.config_changed,
+                {"static_configs": [{"targets": [f"*:{SERVICE_PORT}"]}]}]
         )
 
         # Enable log forwarding for Loki and other charms that implement loki_push_api
