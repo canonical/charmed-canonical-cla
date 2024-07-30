@@ -134,6 +134,7 @@ class FastAPICharm(ops.CharmBase):
                     },
                 }
             },
+            "log-targets": self._pebble_log_targets,
             "checks": {
                 "test": {
                     "override": "replace",
