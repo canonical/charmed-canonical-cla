@@ -182,8 +182,7 @@ class FastAPICharm(ops.CharmBase):
             Optional[str], next(iter(self._logging.loki_endpoints), {}).get("url", None))
 
         if not loki_push_api:
-            logger.error("Loki push api not available:",
-                         self._logging.loki_endpoints)
+            logger.error("Loki push api not available")
             return {}
         return {
             "logs": {
