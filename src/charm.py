@@ -13,9 +13,7 @@ from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)
 
-
-def STARTUP_COMMAND(port: int) -> str:
-    return f"fastapi run --host=0.0.0.0 --port={port} src/main.py"
+SERVICE_PORT = 8000
 
 
 class FastAPICharm(ops.CharmBase):
@@ -30,7 +28,7 @@ class FastAPICharm(ops.CharmBase):
             self,
             relation_name="metrics-endpoint",
             jobs=[
-                {"static_configs": [{"targets": [f"*:{self.config['server-port']}"]}]}],
+                {"static_configs": [{"targets": [f"*:{SERVICE_PORT}"]}]}],
             refresh_event=self.on.config_changed,
         )
 
@@ -64,29 +62,11 @@ class FastAPICharm(ops.CharmBase):
         self._update_layer_and_restart(None)
 
     def _on_config_changed(self, event: ops.ConfigChangedEvent):
-        try:
-            port = self.config["server-port"]
-            logger.info(f"server is changing port: {port}")
-            self._update_layer_and_restart()
-            self._handle_ports()
-        except ValueError:
-            logger.debug("Invalid port number", exc_info=True)
-
-    def _handle_ports(self):
-        port = int(self.config["server-port"])
-        logger.warn(f"setting ports {port}")
-        self.unit.set_ports(port)
+        self._update_layer_and_restart()
 
     def _on_collect_status(self, event):
         # If nothing is wrong, then the status is active.
         event.add_status(ops.ActiveStatus())
-
-        port = self.config["server-port"]
-        try:
-            int(port)
-        except ValueError:
-            event.add_status(ops.ErrorStatus(
-                f"Invalid config.server-port value: {port}"))
 
         if not self.model.get_relation("database"):
             # We need the user to do 'juju integrate'.
@@ -138,9 +118,8 @@ class FastAPICharm(ops.CharmBase):
     @ property
     def _pebble_layer(self):
         """Return a dictionary representing a Pebble layer."""
-        port = int(self.config['server-port'])
         health_check_endpoint: ops.pebble.HttpDict = {
-            "url": f"http://localhost:{port}/healthz"
+            "url": f"http://localhost:{SERVICE_PORT}/healthz"
         }
         pebble_layer: ops.pebble.LayerDict = {
             "services": {
@@ -148,7 +127,7 @@ class FastAPICharm(ops.CharmBase):
                     "override": "replace",
                     "startup": "enabled",
                     "working-dir": "app",
-                    "command": STARTUP_COMMAND(port),
+                    "command": f"python3 -m fastapi run --host=0.0.0.0 --port={SERVICE_PORT} src/main.py",
                     "environment": self.app_environment,
                     "on-check-failure": {
                         # restart on checks.up failure
@@ -188,10 +167,10 @@ class FastAPICharm(ops.CharmBase):
         if not db_data:
             return {}
         env = {
-            "DEMO_SERVER_DB_HOST": db_data.get("db_host", None),
-            "DEMO_SERVER_DB_PORT": db_data.get("db_port", None),
-            "DEMO_SERVER_DB_USER": db_data.get("db_username", None),
-            "DEMO_SERVER_DB_PASSWORD": db_data.get("db_password", None),
+            "DB_HOST": db_data.get("db_host", None),
+            "DB_PORT": db_data.get("db_port", None),
+            "DB_USER": db_data.get("db_username", None),
+            "DB_PASSWORD": db_data.get("db_password", None),
         }
         return env
 
