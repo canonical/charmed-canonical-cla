@@ -7,7 +7,6 @@ summary: |
 assumes:
   - juju >= 3.1
   - k8s-api
-
 requires:
   database:
     interface: postgresql_client
@@ -15,19 +14,16 @@ requires:
   log-proxy:
     interface: loki_push_api
     limit: 1
-
 provides:
   metrics-endpoint:
     interface: prometheus_scrape
   grafana-dashboard:
     interface: grafana_dashboard
-
 containers:
   app:
     resource: app-image
-
 resources:
   app-image:
     type: oci-image
     description: OCI image from the Canonical's private Docker registry
-    upstream-source: ghcr.io/canonical/canonical-cla:1722354782-0e55355
+    upstream-source: ghcr.io/canonical/canonical-cla:1722527618-5bee7f3
