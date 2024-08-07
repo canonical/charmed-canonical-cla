@@ -7,8 +7,8 @@ import ops
 from charms.data_platform_libs.v0.data_interfaces import DatabaseCreatedEvent, DatabaseRequires
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.loki_k8s.v0.loki_push_api import LokiPushApiConsumer
-from charms.nginx_ingress_integrator.v0.ingress import IngressRequires
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer
 
 import utils
 
@@ -56,13 +56,8 @@ class FastAPICharm(ops.CharmBase):
         self.framework.observe(self.database.on.endpoints_changed, self._on_database_created)
 
         # Ingress relation interface
-        self.ingress = IngressRequires(
-            self,
-            {
-                "service-hostname": self.config["external-hostname"] or self.app.name,
-                "service-name": self.app.name,
-                "service-port": 80,
-            },
+        self.ingress = IngressPerAppRequirer(
+            self, host=self.config["external-hostname"] or self.app.name, port=80
         )
 
     def _on_database_created(self, event: DatabaseCreatedEvent) -> None:
@@ -146,7 +141,14 @@ class FastAPICharm(ops.CharmBase):
             event.set_results({"result": "Migrations completed successfully"})
         except ops.pebble.ExecError as e:
             event.fail(f"Migration command failed: {e}")
-            event.set_results({"full-stderr": e.stderr})
+            event.set_results(
+                {
+                    "output": {
+                        "stderr": e.stderr,
+                        "stdout": e.stdout,
+                    }
+                }
+            )
             return
         except ops.pebble.ChangeError as e:
             event.fail(f"Failed to run migrations: {e}")
