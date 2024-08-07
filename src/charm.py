@@ -143,8 +143,10 @@ class FastAPICharm(ops.CharmBase):
             self.container.exec(
                 cmd, environment=self.app_environment, combine_stderr=True, working_dir="/app"
             ).wait_output()
+            event.set_results({"result": "Migrations completed successfully"})
         except ops.pebble.ExecError as e:
             event.fail(f"Migration command failed: {e}")
+            event.set_results({"stderr": e.stderr})
             return
         except ops.pebble.ChangeError as e:
             event.fail(f"Failed to run migrations: {e}")
