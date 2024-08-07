@@ -4,9 +4,11 @@ description: |
   This service manages contributors and organisations who signed Canonical's Contribution Licence Agreement (CLA).
 summary: |
   Canonical Contribution Licence Agreement (CLA) Service.
+
 assumes:
   - juju >= 3.1
   - k8s-api
+
 requires:
   database:
     interface: postgresql_client
@@ -14,14 +16,20 @@ requires:
   log-proxy:
     interface: loki_push_api
     limit: 1
+  ingress:
+    interface: ingress
+    limit: 1
+
 provides:
   metrics-endpoint:
     interface: prometheus_scrape
   grafana-dashboard:
     interface: grafana_dashboard
+
 containers:
   app:
     resource: app-image
+
 resources:
   app-image:
     type: oci-image

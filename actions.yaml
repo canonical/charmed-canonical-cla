@@ -1,0 +1,6 @@
+migrate-db:
+  description: "Run the database migrations using alembic."
+  params:
+    revision:
+      description: "The revision to migrate to. If not specified, the latest revision will be used. The default value 'head'."
+      type: string

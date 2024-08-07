@@ -7,5 +7,4 @@ build/
 __pycache__/
 *.py[cod]
 .idea
-.vscode/
 *.out

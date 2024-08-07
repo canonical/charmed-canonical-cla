@@ -1,0 +1,6 @@
+external-hostname:
+  description: |
+    The external hostname to use. Will default to the name of the deployed
+    application.
+  default: ""
+  type: string
