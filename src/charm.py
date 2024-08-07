@@ -21,11 +21,10 @@ SERVICE_PORT = 8000
 class FastAPICharm(ops.CharmBase):
     """Charm the service."""
 
-    app_container: ops.Container
+    container: ops.Container
 
     def __init__(self, framework: ops.Framework):
         super().__init__(framework)
-
         # Define the charm events
         self.container = self.unit.get_container("app")
 
@@ -141,7 +140,7 @@ class FastAPICharm(ops.CharmBase):
         event.log(f"Running {' '.join(cmd)}")
 
         try:
-            self.app_container.exec(
+            self.container.exec(
                 cmd, environment=self.app_environment, combine_stderr=True, working_dir="/app"
             ).wait_output()
         except ops.pebble.ExecError as e:
