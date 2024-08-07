@@ -33,7 +33,7 @@ class FastAPICharm(ops.CharmBase):
         framework.observe(self.on.app_pebble_ready, self._update_layer_and_restart)
         framework.observe(self.on.collect_unit_status, self._on_collect_status)
 
-        framework.observe(self.on.migrate_db, self._on_migrate_db)
+        framework.observe(self.on.migrate_db_action, self._on_migrate_db)
 
         # Provide ability for prometheus to be scraped by Prometheus using prometheus_scrape
         self._prometheus_scraping = MetricsEndpointProvider(
