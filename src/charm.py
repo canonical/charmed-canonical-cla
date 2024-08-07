@@ -59,9 +59,9 @@ class FastAPICharm(ops.CharmBase):
         self.ingress = IngressRequires(
             self,
             {
-                "service-hostname": self.config["external-hostname"] or self.app.name,
+                "service-hostname": self.config["external_hostname"] or self.app.name,
                 "service-name": self.app.name,
-                "service-port": 80,
+                "service-port": SERVICE_PORT,
             },
         )
 
@@ -143,8 +143,10 @@ class FastAPICharm(ops.CharmBase):
             self.container.exec(
                 cmd, environment=self.app_environment, combine_stderr=True, working_dir="/app"
             ).wait_output()
+            event.set_results({"result": "Migrations completed successfully"})
         except ops.pebble.ExecError as e:
             event.fail(f"Migration command failed: {e}")
+            event.set_results({"full-stderr": e.stderr, "full-stdout": e.stdout})
             return
         except ops.pebble.ChangeError as e:
             event.fail(f"Failed to run migrations: {e}")
