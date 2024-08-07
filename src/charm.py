@@ -91,7 +91,7 @@ class FastAPICharm(ops.CharmBase):
             event.add_status(ops.BlockedStatus(error_message))
             logger.warning(error_message)
             return
-        elif not self.database.fetch_relation_data():
+        elif not self.fetch_postgres_relation_data():
             # We need the charms to finish integrating.
             event.add_status(ops.WaitingStatus("Waiting for database relation"))
             return
@@ -200,15 +200,17 @@ class FastAPICharm(ops.CharmBase):
 
         # add database connection details if available
         db_data = self.fetch_postgres_relation_data()
-        if db_data:
-            env_vars.update(
-                {
-                    "DB_HOST": db_data.get("db_host", None),
-                    "DB_PORT": db_data.get("db_port", None),
-                    "DB_USER": db_data.get("db_username", None),
-                    "DB_PASSWORD": db_data.get("db_password", None),
-                }
-            )
+        if not db_data:
+            logger.warning("No database relation data available")
+            return {}
+        env_vars.update(
+            {
+                "DB_HOST": db_data.get("db_host", None),
+                "DB_PORT": db_data.get("db_port", None),
+                "DB_USER": db_data.get("db_username", None),
+                "DB_PASSWORD": db_data.get("db_password", None),
+            }
+        )
 
         # apply proxy settings if available
         proxy_dict = utils.get_proxy_dict(self.config)
@@ -248,9 +250,10 @@ class FastAPICharm(ops.CharmBase):
         a dictionary. If no data is retrieved, the unit is set to waiting status and
         the program exits with a zero status code."""
         relations = self.database.fetch_relation_data()
-        logger.debug("Got following database data: %s", relations)
+        if not relations:
+            return None
         for data in relations.values():
-            if not data:
+            if not data or not data.get("username"):
                 continue
             logger.info("New PSQL database endpoint is %s", data["endpoints"])
             host, port = data["endpoints"].split(":")
@@ -261,7 +264,8 @@ class FastAPICharm(ops.CharmBase):
                 "db_password": data["password"],
             }
             return db_data
-        return {}
+        logger.warning("No database relation data available")
+        return None
 
 
 if __name__ == "__main__":  # pragma: nocover
