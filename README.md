@@ -37,7 +37,7 @@ In order to access the service via the internet we need to setup an ingress, thi
 
 ```bash
 juju deploy nginx-ingress-integrator
-juju integrate canonical-cla:ingress nginx-ingress-integrator:ingress
+juju integrate canonical-cla nginx-ingress-integrator
 ```
 
 ### Observability
@@ -75,7 +75,7 @@ The OCI image ID is automatically updated on each commit to the `main` branch to
 
 ## Available Actions
 
-### Database Migrations
+### Running DB Migrations
 
 The charm provides an action to run the database migrations, this should be run on new migrations or on the first deployment:
 

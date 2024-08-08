@@ -7,7 +7,7 @@ import ops
 from charms.data_platform_libs.v0.data_interfaces import DatabaseCreatedEvent, DatabaseRequires
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.loki_k8s.v0.loki_push_api import LokiPushApiConsumer
-from charms.nginx_ingress_integrator.v0.ingress import IngressRequires
+from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 
 import utils
@@ -60,14 +60,11 @@ class FastAPICharm(ops.CharmBase):
         self.framework.observe(self.database.on.database_created, self._on_database_created)
         self.framework.observe(self.database.on.endpoints_changed, self._on_database_created)
 
-        # Ingress relation interface
-        self.ingress = IngressRequires(
-            self,
-            {
-                "service-hostname": self.app.name,
-                "service-name": self.app.name,
-                "service-port": SERVICE_PORT,
-            },
+        require_nginx_route(
+            charm=self,
+            service_hostname=self.app.name,
+            service_name=self.app.name,
+            service_port=SERVICE_PORT,
         )
 
     def _on_database_created(self, event: DatabaseCreatedEvent) -> None:
