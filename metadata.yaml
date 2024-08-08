@@ -1,9 +1,9 @@
 name: canonical-cla
 title: Canonical CLA service
 description: |
-  This service manages contributors and organisations who signed Canonical's Contribution Licence Agreement (CLA).
+  This service manages contributors and organisations who signed Canonical's Contributor License Agreement (CLA).
 summary: |
-  Canonical Contribution Licence Agreement (CLA) Service.
+  Canonical Contributor License Agreement (CLA) Service.
 assumes:
   - juju >= 3.1
   - k8s-api
