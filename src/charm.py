@@ -16,6 +16,7 @@ import utils
 logger = logging.getLogger(__name__)
 
 SERVICE_PORT = 8000
+DATABASE_NAME = "canonical-cla"
 
 
 class FastAPICharm(ops.CharmBase):
@@ -32,7 +33,9 @@ class FastAPICharm(ops.CharmBase):
         framework.observe(self.on.app_pebble_ready, self._update_layer_and_restart)
         framework.observe(self.on.collect_unit_status, self._on_collect_status)
 
-        framework.observe(self.on.migrate_db_action, self._on_migrate_db)
+        framework.observe(self.on.migrate_db_action, self._on_migrate_db_action)
+
+        self.unit.open_port("tcp", SERVICE_PORT)
 
         # Provide ability for prometheus to be scraped by Prometheus using prometheus_scrape
         self._prometheus_scraping = MetricsEndpointProvider(
@@ -50,7 +53,9 @@ class FastAPICharm(ops.CharmBase):
         )
 
         # Charm events defined in the database requires charm library.
-        self.database = DatabaseRequires(self, relation_name="database", database_name="names_db")
+        self.database = DatabaseRequires(
+            self, relation_name="database", database_name=DATABASE_NAME
+        )
 
         self.framework.observe(self.database.on.database_created, self._on_database_created)
         self.framework.observe(self.database.on.endpoints_changed, self._on_database_created)
@@ -59,7 +64,7 @@ class FastAPICharm(ops.CharmBase):
         self.ingress = IngressRequires(
             self,
             {
-                "service-hostname": self.config["external-hostname"] or self.app.name,
+                "service-hostname": self.app.name,
                 "service-name": self.app.name,
                 "service-port": SERVICE_PORT,
             },
@@ -70,9 +75,6 @@ class FastAPICharm(ops.CharmBase):
         self._update_layer_and_restart(None)
 
     def _on_config_changed(self, event: ops.ConfigChangedEvent):
-        self.ingress.update_config(
-            {"service-hostname": self.config["external-hostname"] or self.app.name}
-        )
         self._update_layer_and_restart()
 
     def _on_collect_status(self, event):
@@ -85,8 +87,9 @@ class FastAPICharm(ops.CharmBase):
             logger.warning(f"{error_message}: %s", e)
             return
         if not self.model.get_relation("database"):
-            # We need the user to do 'juju integrate'.
-            error_message = "Waiting relation to database,  run 'juju integrate postgresql-k8s'"
+            error_message = (
+                "Waiting relation to database,  run 'juju integrate postgresql-k8s canonical-cla'"
+            )
             event.add_status(ops.BlockedStatus(error_message))
             logger.warning(error_message)
             return
@@ -126,7 +129,7 @@ class FastAPICharm(ops.CharmBase):
         except (ops.pebble.ConnectionError, ops.pebble.APIError):
             logger.debug("Error updating Pebble layer", exc_info=True)
 
-    def _on_migrate_db(self, event: ops.ActionEvent):
+    def _on_migrate_db_action(self, event: ops.ActionEvent):
         """Handle the migrate-db action."""
         # if db relation is not available, we can't run migrations
         db_relation = self.model.get_relation("database")
@@ -140,10 +143,17 @@ class FastAPICharm(ops.CharmBase):
         event.log(f"Running {' '.join(cmd)}")
 
         try:
-            self.container.exec(
+
+            (stdout, stderr) = self.container.exec(
                 cmd, environment=self.app_environment, combine_stderr=True, working_dir="/app"
             ).wait_output()
-            event.set_results({"result": "Migrations completed successfully"})
+            event.set_results(
+                {
+                    "result": "Migrations completed successfully",
+                    "full-stdout": stdout,
+                    "full-stderr": stderr,
+                }
+            )
         except ops.pebble.ExecError as e:
             event.fail(f"Migration command failed: {e}")
             event.set_results({"full-stderr": e.stderr, "full-stdout": e.stdout})
@@ -210,7 +220,7 @@ class FastAPICharm(ops.CharmBase):
                 "DB_PORT": db_data.get("db_port", None),
                 "DB_USER": db_data.get("db_username", None),
                 "DB_PASSWORD": db_data.get("db_password", None),
-                "DB_DATABASE": db_data.get("db_name", None),
+                "DB_DATABASE": DATABASE_NAME,
             }
         )
         logger.debug("env_vars: %s", env_vars)
