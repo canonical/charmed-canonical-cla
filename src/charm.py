@@ -210,9 +210,10 @@ class FastAPICharm(ops.CharmBase):
                 "DB_PORT": db_data.get("db_port", None),
                 "DB_USER": db_data.get("db_username", None),
                 "DB_PASSWORD": db_data.get("db_password", None),
+                "DB_NAME": db_data.get("db_name", None),
             }
         )
-
+        logger.debug("env_vars: %s", env_vars)
         # apply proxy settings if available
         proxy_dict = utils.get_proxy_dict(self.config)
         if proxy_dict:
@@ -256,13 +257,13 @@ class FastAPICharm(ops.CharmBase):
         for data in relations.values():
             if not data or not data.get("username"):
                 continue
-            logger.info("New PSQL database endpoint is %s", data["endpoints"])
             host, port = data["endpoints"].split(":")
             db_data = {
                 "db_host": host,
                 "db_port": port,
                 "db_username": data["username"],
                 "db_password": data["password"],
+                "db_name": data["database"],
             }
             return db_data
         logger.warning("No database relation data available")
