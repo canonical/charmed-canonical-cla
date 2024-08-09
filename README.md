@@ -28,7 +28,8 @@ juju integrate canonical-cla:database postgresql-k8s:database
 ### Redis
 
 ```bash
-TODO
+juju deploy redis-k8s
+juju integrate canonical-cla redis-k8s
 ```
 
 ### Ingress
