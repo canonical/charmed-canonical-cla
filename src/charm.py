@@ -9,6 +9,7 @@ from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.loki_k8s.v0.loki_push_api import LokiPushApiConsumer
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+from charms.redis_k8s.v0.redis import RedisRelationCharmEvents, RedisRequires
 
 import utils
 
@@ -23,6 +24,7 @@ class FastAPICharm(ops.CharmBase):
     """Charm the service."""
 
     container: ops.Container
+    on = RedisRelationCharmEvents()
 
     def __init__(self, framework: ops.Framework):
         super().__init__(framework)
@@ -57,6 +59,10 @@ class FastAPICharm(ops.CharmBase):
             self, relation_name="database", database_name=DATABASE_NAME
         )
 
+        # Redis relation
+        self.redis = RedisRequires(self, relation_name="redis")
+        self.framework.observe(self.on.redis_relation_updated, self._on_redis_relation_changed)
+
         self.framework.observe(self.database.on.database_created, self._on_database_created)
         self.framework.observe(self.database.on.endpoints_changed, self._on_database_created)
 
@@ -69,6 +75,10 @@ class FastAPICharm(ops.CharmBase):
 
     def _on_database_created(self, event: DatabaseCreatedEvent) -> None:
         """Event is fired when postgres database is created."""
+        self._update_layer_and_restart(None)
+
+    def _on_redis_relation_changed(self, event):
+        """Handle the redis relation changed event."""
         self._update_layer_and_restart(None)
 
     def _on_config_changed(self, event: ops.ConfigChangedEvent):
@@ -93,6 +103,18 @@ class FastAPICharm(ops.CharmBase):
         elif not self.fetch_postgres_relation_data():
             # We need the charms to finish integrating.
             event.add_status(ops.WaitingStatus("Waiting for database relation"))
+            return
+        if not self.model.get_relation("redis"):
+            error_message = (
+                "Waiting relation to redis,  run 'juju relate redis-k8s:redis canonical-cla:redis'"
+            )
+            event.add_status(ops.BlockedStatus(error_message))
+            logger.warning(error_message)
+            return
+        elif not self.fetch_redis_relation_data():
+            error_message = "Waiting for redis relation"
+            event.add_status(ops.WaitingStatus(error_message))
+            logger.warning(error_message)
             return
         elif not status.is_running():
             event.add_status(ops.MaintenanceStatus("Waiting for the service to start up"))
@@ -211,16 +233,13 @@ class FastAPICharm(ops.CharmBase):
         if not db_data:
             logger.warning("No database relation data available")
             return {}
-        env_vars.update(
-            {
-                "DB_HOST": db_data.get("db_host", None),
-                "DB_PORT": db_data.get("db_port", None),
-                "DB_USER": db_data.get("db_username", None),
-                "DB_PASSWORD": db_data.get("db_password", None),
-                "DB_DATABASE": DATABASE_NAME,
-            }
-        )
-        logger.debug("env_vars: %s", env_vars)
+        env_vars.update(db_data)
+        redis_data = self.fetch_redis_relation_data()
+        if not redis_data:
+            logger.warning("No redis relation data available")
+            return {}
+        env_vars.update(redis_data)
+
         # apply proxy settings if available
         proxy_dict = utils.get_proxy_dict(self.config)
         if proxy_dict:
@@ -249,7 +268,7 @@ class FastAPICharm(ops.CharmBase):
             }
         }
 
-    def fetch_postgres_relation_data(self):
+    def fetch_postgres_relation_data(self) -> Dict | None:
         """Fetch postgres relation data.
 
         This function retrieves relation data from a postgres database using
@@ -266,15 +285,35 @@ class FastAPICharm(ops.CharmBase):
                 continue
             host, port = data["endpoints"].split(":")
             db_data = {
-                "db_host": host,
-                "db_port": port,
-                "db_username": data["username"],
-                "db_password": data["password"],
-                "db_name": data["database"],
+                "DB_HOST": host,
+                "DB_PORT": port,
+                "DB_USERNAME": data["username"],
+                "DB_PASSWORD": data["password"],
+                "DB_DATABASE": DATABASE_NAME,
             }
             return db_data
         logger.warning("No database relation data available")
         return None
+
+    def fetch_redis_relation_data(self) -> Dict | None:
+        """Get the hostname and port from the redis relation data.
+
+        Returns:
+            Tuple with the hostname and port of the related redis
+        Raises:
+            MissingRedisRelationDataError if the some of redis relation data is malformed/missing
+        """
+        relation_data = self.redis.relation_data
+        if not relation_data:
+            return None
+        hostname = relation_data.get("hostname")
+        port = relation_data.get("port")
+        if not hostname or not port:
+            return None
+        return {
+            "REDIS_HOST": hostname,
+            "REDIS_PORT": port,
+        }
 
 
 if __name__ == "__main__":  # pragma: nocover
