@@ -86,6 +86,7 @@ class FastAPICharm(ops.CharmBase):
 
     def _on_collect_status(self, event):
         # If nothing is wrong, then the status is active.
+        self.config_valid_values
         try:
             status = self.container.get_service("app")
         except (ops.pebble.APIError, ops.ModelError, ops.pebble.ConnectionError) as e:
@@ -193,7 +194,7 @@ class FastAPICharm(ops.CharmBase):
                     "override": "replace",
                     "startup": "enabled",
                     "working-dir": "app",
-                    "command": f"fastapi run --host=0.0.0.0 --port={SERVICE_PORT} src/main.py",
+                    "command": f"fastapi run --host=0.0.0.0 --port={SERVICE_PORT}",
                     "environment": self.app_environment,
                     "on-check-failure": {
                         # restart on checks.up failure
@@ -246,6 +247,11 @@ class FastAPICharm(ops.CharmBase):
             env_vars.update(proxy_dict)
 
         return env_vars
+
+    @property
+    def config_valid_values(self) -> bool:
+        """Check if the config values are valid."""
+        logger.info("config values: %s", self.config)
 
     @property
     def _pebble_log_targets(self) -> Dict[str, ops.pebble.LogTargetDict]:

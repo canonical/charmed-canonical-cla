@@ -1,0 +1,6 @@
+options:
+  secret_key:
+    type: string
+    description: |
+      Secret key used to sign session cookies.
+      This key should be kept secret and not shared.
