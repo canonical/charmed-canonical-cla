@@ -193,7 +193,7 @@ class FastAPICharm(ops.CharmBase):
                 "app": {
                     "override": "replace",
                     "startup": "enabled",
-                    "working-dir": "app",
+                    "working-dir": "srv",
                     "command": f"uvicorn app.main:app --host 0.0.0.0 --port {SERVICE_PORT} --workers 4",
                     "environment": self.app_environment,
                     "on-check-failure": {
