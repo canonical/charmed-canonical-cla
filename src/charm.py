@@ -246,6 +246,8 @@ class FastAPICharm(ops.CharmBase):
         if proxy_dict:
             env_vars.update(proxy_dict)
 
+        env_vars["PYTHONPATH"] = "/app"
+
         return env_vars
 
     @property
