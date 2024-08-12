@@ -194,7 +194,7 @@ class FastAPICharm(ops.CharmBase):
                     "override": "replace",
                     "startup": "enabled",
                     "working-dir": "app",
-                    "command": f"fastapi run --host=0.0.0.0 --port={SERVICE_PORT}",
+                    "command": f"uvicorn app.main:app --host 0.0.0.0 --port {SERVICE_PORT} --workers 4",
                     "environment": self.app_environment,
                     "on-check-failure": {
                         # restart on checks.up failure
@@ -251,7 +251,7 @@ class FastAPICharm(ops.CharmBase):
     @property
     def config_valid_values(self) -> bool:
         """Check if the config values are valid."""
-        logger.info("config values: %s", self.config)
+        logger.info("config values: %s", self.meta)
 
     @property
     def _pebble_log_targets(self) -> Dict[str, ops.pebble.LogTargetDict]:
