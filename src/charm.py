@@ -165,7 +165,7 @@ class FastAPICharm(ops.CharmBase):
         try:
 
             (stdout, stderr) = self.container.exec(
-                cmd, environment=self.app_environment, combine_stderr=True, working_dir="/app"
+                cmd, environment=self.app_environment, combine_stderr=True, working_dir="/srv"
             ).wait_output()
             event.set_results(
                 {
@@ -245,8 +245,6 @@ class FastAPICharm(ops.CharmBase):
         proxy_dict = utils.get_proxy_dict(self.config)
         if proxy_dict:
             env_vars.update(proxy_dict)
-
-        env_vars["PYTHONPATH"] = "/app"
 
         return env_vars
 
