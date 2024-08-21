@@ -1,7 +1,7 @@
 import os
 from typing import TypedDict
-
 import ops
+from secret import Secret
 
 
 def map_config_to_env_vars(charm: ops.CharmBase, **additional_env):
@@ -11,14 +11,40 @@ def map_config_to_env_vars(charm: ops.CharmBase, **additional_env):
     After that, the vars can be passed directly to the pebble layer.
     Variables must match the form <Key1>_<key2>_<key3>...
     """
-    env_mapped_config = {
-        k.replace("-", "_").replace(".", "_").upper(): v for k, v in charm.config.items()
-    }
+    env_mapped_config = {}
+    for k, v in charm.config.items():
+        if not v.startswith("secret:"):
+            env_mapped_config.update({
+                k.replace("-", "_").replace(".", "_").upper(): v
+            })
+
+    env_mapped_config.update(fetch_secrets(charm))
 
     return {**env_mapped_config, **additional_env}
 
 
-ProxyDict = TypedDict("ProxyDict", {"http_proxy": str, "https_proxy": str, "no_proxy": str})
+def fetch_secrets(charm: ops.CharmBase):
+    """
+    Fetch the secrets from the model and return them as a dictionary.
+
+    The keys are the secret names and the values are the secret values.
+
+    :param charm: The charm instance.
+
+    :return: A dictionary with the secret names and values.
+    :raises: `ValueError` if some secrets are not found.
+    """
+    secrets_values = {}
+    for v in charm.config.values():
+        if v.startswith("secret:"):
+            secret_value_dict = charm.model.get_secret(
+                id=v).get_content(refresh=True)
+            secrets_values.update(secret_value_dict)
+    return Secret.parse(**secrets_values).dict()
+
+
+ProxyDict = TypedDict(
+    "ProxyDict", {"http_proxy": str, "https_proxy": str, "no_proxy": str})
 
 
 def get_proxy_dict(cfg) -> ProxyDict | None:

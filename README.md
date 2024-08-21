@@ -12,6 +12,20 @@ The Canonical CLA service is deployed using the following Juju command:
 juju deploy canonical-cla --channel edge
 ```
 
+Setup the required secrets for the Canonical CLA service:
+
+```bash
+# setup secrets, copy the secret id from the output
+juju add-secret canonical-cla-secret-key secret-key="$(openssl rand -hex 32)"
+juju grant-secret canonical-cla-secret-key canonical-cla
+# paste the secret id from the output here
+juju config canonical-cla secret_key="secret:{id}"
+
+juju add-secret canonical-cla-github github-oauth-client-id="abc" github-oauth-client-secret="def"
+juju grant-secret canonical-cla-github canonical-cla
+juju config canonical-cla github_oauth="secret:{id}"
+```
+
 ## Integrations
 
 The following integrations are essential in order of the Canonical CLA service to work

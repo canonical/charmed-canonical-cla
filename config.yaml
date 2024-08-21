@@ -1,14 +1,9 @@
 options:
   secret_key:
-    type: string
+    type: secret
     description: |
-      Secret key used to sign session cookies.
-      This key should be kept secret and not shared.
-  github_oauth_client_id:
-    type: string
+      Secret key used to encrypt cookie sessions.
+  github_oauth:
+    type: secret
     description: |
-      Client ID for GitHub OAuth.
-  github_oauth_client_secret:
-    type: string
-    description: |
-      Client secret for GitHub OAuth.
+      GitHub OAuth configuration (client ID and secret).
