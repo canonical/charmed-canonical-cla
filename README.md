@@ -24,6 +24,10 @@ juju config canonical-cla secret_key="secret:{id}"
 juju add-secret canonical-cla-github github-oauth-client-id="abc" github-oauth-client-secret="def"
 juju grant-secret canonical-cla-github canonical-cla
 juju config canonical-cla github_oauth="secret:{id}"
+
+juju add-secret canonical-cla-smtp smtp-host="localhost" smtp-port="25" smtp-username="user" smtp-password="pass"
+juju grant-secret canonical-cla-smtp canonical-cla
+juju config canonical-cla smtp="secret:{id}"
 ```
 
 ## Integrations
