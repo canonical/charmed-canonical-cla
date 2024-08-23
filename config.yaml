@@ -8,6 +8,11 @@ options:
     type: string
     description: |
       URL of the application.
+  rate_limit_whitelist:
+    type: string
+    description: |
+      Comma-separated list of IP addresses to exclude from rate limiting (e.g. '["127.0.0.1", "localhost"]').
+    default: '["127.0.0.1", "localhost"]'
   secret_key:
     type: secret
     description: |
