@@ -1,4 +1,13 @@
 options:
+  app_name:
+    type: string
+    description: |
+      Name of the application.
+    default: "Canonical CLA"
+  app_url:
+    type: string
+    description: |
+      URL of the application.
   secret_key:
     type: secret
     description: |
