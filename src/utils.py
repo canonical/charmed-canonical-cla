@@ -1,6 +1,8 @@
 import os
 from typing import TypedDict
+
 import ops
+
 from secret import Secret
 
 
@@ -14,9 +16,7 @@ def map_config_to_env_vars(charm: ops.CharmBase, **additional_env):
     env_mapped_config = {}
     for k, v in charm.config.items():
         if not v.startswith("secret:"):
-            env_mapped_config.update({
-                k.replace("-", "_").replace(".", "_").upper(): v
-            })
+            env_mapped_config.update({k.replace("-", "_").replace(".", "_").upper(): v})
 
     env_mapped_config.update(fetch_secrets(charm))
 
@@ -37,14 +37,12 @@ def fetch_secrets(charm: ops.CharmBase):
     secrets_values = {}
     for v in charm.config.values():
         if v.startswith("secret:"):
-            secret_value_dict = charm.model.get_secret(
-                id=v).get_content(refresh=True)
-            secrets_values.update(secret_value_dict)
+            secret_value_dict = charm.model.get_secret(id=v).get_content(refresh=True)
+            secrets_values.update({k.upper(): v for k, v in secret_value_dict.items()})
     return Secret.parse(**secrets_values).dict()
 
 
-ProxyDict = TypedDict(
-    "ProxyDict", {"http_proxy": str, "https_proxy": str, "no_proxy": str})
+ProxyDict = TypedDict("ProxyDict", {"http_proxy": str, "https_proxy": str, "no_proxy": str})
 
 
 def get_proxy_dict(cfg) -> ProxyDict | None:

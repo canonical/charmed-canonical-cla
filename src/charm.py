@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 
 import logging
-from typing import Dict, Optional, cast, Tuple
+import os
+from typing import Dict, Optional, Tuple, cast
 
 import ops
+import yaml
 from charms.data_platform_libs.v0.data_interfaces import DatabaseCreatedEvent, DatabaseRequires
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.loki_k8s.v0.loki_push_api import LokiPushApiConsumer
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.redis_k8s.v0.redis import RedisRelationCharmEvents, RedisRequires
-import os
-import yaml
+
 import utils
 
 # Log messages can be retrieved using juju debug-log
@@ -32,12 +33,10 @@ class FastAPICharm(ops.CharmBase):
         # Define the charm events
         self.container = self.unit.get_container("app")
         framework.observe(self.on.config_changed, self._on_config_changed)
-        framework.observe(self.on.app_pebble_ready,
-                          self._update_layer_and_restart)
+        framework.observe(self.on.app_pebble_ready, self._update_layer_and_restart)
         framework.observe(self.on.collect_unit_status, self._on_collect_status)
 
-        framework.observe(self.on.migrate_db_action,
-                          self._on_migrate_db_action)
+        framework.observe(self.on.migrate_db_action, self._on_migrate_db_action)
 
         self.unit.open_port("tcp", SERVICE_PORT)
 
@@ -63,13 +62,10 @@ class FastAPICharm(ops.CharmBase):
 
         # Redis relation
         self.redis = RedisRequires(self, relation_name="redis")
-        self.framework.observe(
-            self.on.redis_relation_updated, self._on_redis_relation_changed)
+        self.framework.observe(self.on.redis_relation_updated, self._on_redis_relation_changed)
 
-        self.framework.observe(
-            self.database.on.database_created, self._on_database_created)
-        self.framework.observe(
-            self.database.on.endpoints_changed, self._on_database_created)
+        self.framework.observe(self.database.on.database_created, self._on_database_created)
+        self.framework.observe(self.database.on.endpoints_changed, self._on_database_created)
 
         require_nginx_route(
             charm=self,
@@ -112,8 +108,7 @@ class FastAPICharm(ops.CharmBase):
             return
         elif not self.fetch_postgres_relation_data():
             # We need the charms to finish integrating.
-            event.add_status(ops.WaitingStatus(
-                "Waiting for database relation"))
+            event.add_status(ops.WaitingStatus("Waiting for database relation"))
             return
         if not self.model.get_relation("redis"):
             error_message = (
@@ -128,8 +123,7 @@ class FastAPICharm(ops.CharmBase):
             logger.warning(error_message)
             return
         elif not status.is_running():
-            event.add_status(ops.MaintenanceStatus(
-                "Waiting for the service to start up"))
+            event.add_status(ops.MaintenanceStatus("Waiting for the service to start up"))
         else:
             event.add_status(ops.ActiveStatus())
 
@@ -149,8 +143,7 @@ class FastAPICharm(ops.CharmBase):
             services = self.container.get_plan().to_dict().get("services", {})
             if services != new_layer_services:
                 # Changes were made, add the new layer
-                self.container.add_layer(
-                    "app", self._pebble_layer, combine=True)
+                self.container.add_layer("app", self._pebble_layer, combine=True)
                 logger.info(f"Added updated layer 'app' to Pebble plan")
                 if event and isinstance(event, ops.PebbleReadyEvent):
                     self.container.replan()
@@ -188,8 +181,7 @@ class FastAPICharm(ops.CharmBase):
             )
         except ops.pebble.ExecError as e:
             event.fail(f"Migration command failed: {e}")
-            event.set_results(
-                {"full-stderr": e.stderr, "full-stdout": e.stdout})
+            event.set_results({"full-stderr": e.stderr, "full-stdout": e.stdout})
             return
         except ops.pebble.ChangeError as e:
             event.fail(f"Failed to run migrations: {e}")
@@ -244,7 +236,7 @@ class FastAPICharm(ops.CharmBase):
         if not is_valid:
             logger.warning(message)
             return {}
-        
+
         env_vars = utils.map_config_to_env_vars(self)
 
         # add database connection details if available
@@ -260,9 +252,9 @@ class FastAPICharm(ops.CharmBase):
         env_vars.update(redis_data)
 
         # apply proxy settings if available
-        proxy_dict = utils.get_proxy_dict(self.config)
-        if proxy_dict:
-            env_vars.update(proxy_dict)
+        # proxy_dict = utils.get_proxy_dict(self.config)
+        # if proxy_dict:
+        #     env_vars.update(proxy_dict)
 
         return env_vars
 
@@ -274,7 +266,7 @@ class FastAPICharm(ops.CharmBase):
             config_items = config.get("options", None)
             if not config_items:
                 return False, "No options found in config.yaml"
-            for (config_name, config_meta) in config_items.items():
+            for config_name, config_meta in config_items.items():
                 is_secret = config_meta.get("type") == "secret"
                 config_value = self.config.get(config_name)
                 if not config_value:
@@ -295,8 +287,7 @@ class FastAPICharm(ops.CharmBase):
 
         [Pebble docs](https://github.com/canonical/pebble?tab=readme-ov-file#log-forwarding)."""
         loki_push_api = cast(
-            Optional[str], next(
-                iter(self._logging.loki_endpoints), {}).get("url", None)
+            Optional[str], next(iter(self._logging.loki_endpoints), {}).get("url", None)
         )
 
         if not loki_push_api:
