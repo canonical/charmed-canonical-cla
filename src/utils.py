@@ -38,8 +38,9 @@ def fetch_secrets(charm: ops.CharmBase):
     for v in charm.config.values():
         if v.startswith("secret:"):
             secret_value_dict = charm.model.get_secret(id=v).get_content(refresh=True)
-            secrets_values.update({k.upper(): v for k, v in secret_value_dict.items()})
-    return Secret.parse(**secrets_values).dict()
+            secrets_values.update(secret_value_dict)
+    parsed_secrets = Secret.parse(**secrets_values).dict()
+    return {k.upper(): v for k, v in parsed_secrets.items()}
 
 
 ProxyDict = TypedDict("ProxyDict", {"http_proxy": str, "https_proxy": str, "no_proxy": str})
