@@ -30,4 +30,4 @@ resources:
   app-image:
     type: oci-image
     description: OCI image from the Canonical's private Docker registry
-    upstream-source: ghcr.io/canonical/canonical-cla:1724800185-ce2b9e2
+    upstream-source: ghcr.io/canonical/canonical-cla:1726475329-bc6060a
