@@ -191,7 +191,7 @@ class FastAPICharm(ops.CharmBase):
     def _pebble_layer(self):
         """Return a dictionary representing a Pebble layer."""
         health_check_endpoint: ops.pebble.HttpDict = {
-            "url": f"http://localhost:{SERVICE_PORT}/healthz"
+            "url": f"http://localhost:{SERVICE_PORT}/_status/check"
         }
         pebble_layer: ops.pebble.LayerDict = {
             "services": {
