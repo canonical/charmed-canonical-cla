@@ -8,7 +8,7 @@ options:
     type: string
     description: |
       URL of the application.
-  legal_email:
+  smtp_legal_contact_email:
     type: string
     description: |
       Legal contact email address.
