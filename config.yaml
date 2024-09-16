@@ -8,6 +8,10 @@ options:
     type: string
     description: |
       URL of the application.
+  legal_email:
+    type: string
+    description: |
+      Legal contact email address.
   rate_limit_whitelist:
     type: string
     description: |
