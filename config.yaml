@@ -8,6 +8,15 @@ options:
     type: string
     description: |
       URL of the application.
+  environment:
+    type: string
+    description: |
+      Environment in which the application is running.
+    default: "development"
+  sentry_dsn:
+    type: string
+    description: |
+      Sentry DSN (optional).
   smtp_legal_contact_email:
     type: string
     description: |
@@ -27,6 +36,6 @@ options:
     description: |
       GitHub OAuth configuration (client ID and secret).
   smtp:
-    type: string
+    type: secret
     description: |
       SMTP server configuration (host, port, username, password).
