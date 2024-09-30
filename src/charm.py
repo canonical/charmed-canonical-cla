@@ -193,14 +193,24 @@ class FastAPICharm(ops.CharmBase):
         health_check_endpoint: ops.pebble.HttpDict = {
             "url": f"http://localhost:{SERVICE_PORT}/_status/check"
         }
-        logs_path = "/var/log/app.log"
+        uvicorn_command = " ".join(
+            [
+                "uvicorn app.main:app",
+                "--host 0.0.0.0",
+                f"--port {SERVICE_PORT}",
+                "--workers 4",
+                "--log-config /srv/log.ini",
+                "--proxy-headers",
+                "--forwarded-allow-ips *",
+            ]
+        )
         pebble_layer: ops.pebble.LayerDict = {
             "services": {
                 "app": {
                     "override": "replace",
                     "startup": "enabled",
                     "working-dir": "srv",
-                    "command": f"uvicorn app.main:app --host 0.0.0.0 --port {SERVICE_PORT} --workers 4 --log-config /srv/log.ini",
+                    "command": uvicorn_command,
                     "environment": self.app_environment,
                     "on-check-failure": {
                         # restart on checks.up failure
