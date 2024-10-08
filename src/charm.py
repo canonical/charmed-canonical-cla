@@ -306,7 +306,7 @@ class FastAPICharm(ops.CharmBase):
             return {}
         return {
             "logs": {
-                "override": "merge",
+                "override": "replace",
                 "type": "loki",
                 "location": loki_push_api,
                 "services": ["app"],
