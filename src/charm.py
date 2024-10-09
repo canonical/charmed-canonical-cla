@@ -201,7 +201,7 @@ class FastAPICharm(ops.CharmBase):
                 f"--port {SERVICE_PORT}",
                 "--workers 4",
                 "--proxy-headers",
-                "--forwarded-allow-ips *",
+                "--forwarded-allow-ips '*'",
             ]
         )
         pebble_layer: ops.pebble.LayerDict = {
@@ -210,7 +210,7 @@ class FastAPICharm(ops.CharmBase):
                     "override": "replace",
                     "startup": "enabled",
                     "working-dir": "srv",
-                    "command": f"{uvicorn_command} 2>&1 | rotatelogs -l -f /var/log/app.log 50M",
+                    "command": f"{uvicorn_command} 2>&1 | tee /var/log/app.log",
                     "environment": self.app_environment,
                     "on-check-failure": {
                         # restart on checks.up failure
