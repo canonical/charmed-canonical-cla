@@ -210,7 +210,7 @@ class FastAPICharm(ops.CharmBase):
                     "override": "replace",
                     "startup": "enabled",
                     "working-dir": "srv",
-                    "command": f"{uvicorn_command} 2>&1 | tee /var/log/app.log",
+                    "command": f"bash -c \"{uvicorn_command} 2>&1 | tee /var/log/app.log\"",
                     "environment": self.app_environment,
                     "on-check-failure": {
                         # restart on checks.up failure
