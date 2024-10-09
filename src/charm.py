@@ -200,7 +200,6 @@ class FastAPICharm(ops.CharmBase):
                 "--host 0.0.0.0",
                 f"--port {SERVICE_PORT}",
                 "--workers 4",
-                "--log-config /srv/log.ini",
                 "--proxy-headers",
                 "--forwarded-allow-ips *",
             ]
@@ -211,7 +210,7 @@ class FastAPICharm(ops.CharmBase):
                     "override": "replace",
                     "startup": "enabled",
                     "working-dir": "srv",
-                    "command": uvicorn_command,
+                    "command": f"{uvicorn_command} 2>&1 | rotatelogs -l -f /var/log/app.log 50M",
                     "environment": self.app_environment,
                     "on-check-failure": {
                         # restart on checks.up failure
