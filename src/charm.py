@@ -204,13 +204,14 @@ class FastAPICharm(ops.CharmBase):
                 "--forwarded-allow-ips '*'",
             ]
         )
+        split_logs_command = "2>&1 | tee  >(while true; do sleep 600; truncate -s 0 /var/log/app.log; done) >/var/log/app.log"
         pebble_layer: ops.pebble.LayerDict = {
             "services": {
                 "app": {
                     "override": "replace",
                     "startup": "enabled",
                     "working-dir": "srv",
-                    "command": f"bash -c \"{uvicorn_command} 2>&1 | tee /var/log/app.log\"",
+                    "command": f'bash -c "{uvicorn_command} {split_logs_command}"',
                     "environment": self.app_environment,
                     "on-check-failure": {
                         # restart on checks.up failure
