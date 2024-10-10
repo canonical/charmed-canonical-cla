@@ -43,15 +43,15 @@ def fetch_secrets(charm: ops.CharmBase):
     return {k.upper(): v for k, v in parsed_secrets.items()}
 
 
-ProxyDict = TypedDict("ProxyDict", {"http_proxy": str, "https_proxy": str, "no_proxy": str})
+ProxyDict = TypedDict("ProxyDict", {"HTTP_PROXY": str, "HTTPS_PROXY": str, "NO_PROXY": str})
 
 
 def get_proxy_dict(cfg) -> ProxyDict | None:
     """Generate an http proxy server configuration dictionary."""
     proxies: ProxyDict = {
-        "http_proxy": cfg.get("http_proxy", "") or os.environ.get("JUJU_CHARM_HTTP_PROXY", ""),
-        "https_proxy": cfg.get("https_proxy", "") or os.environ.get("JUJU_CHARM_HTTPS_PROXY", ""),
-        "no_proxy": cfg.get("no_proxy", "") or os.environ.get("JUJU_CHARM_NO_PROXY", ""),
+        "HTTP_PROXY": cfg.get("http_proxy", "") or os.environ.get("JUJU_CHARM_HTTP_PROXY", ""),
+        "HTTPS_PROXY": cfg.get("https_proxy", "") or os.environ.get("JUJU_CHARM_HTTPS_PROXY", ""),
+        "NO_PROXY": cfg.get("no_proxy", "") or os.environ.get("JUJU_CHARM_NO_PROXY", ""),
     }
     if all(v == "" for v in proxies.values()):
         return None
