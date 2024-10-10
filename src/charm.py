@@ -263,9 +263,9 @@ class FastAPICharm(ops.CharmBase):
         env_vars.update(redis_data)
 
         # apply proxy settings if available
-        # proxy_dict = utils.get_proxy_dict(self.config)
-        # if proxy_dict:
-        #     env_vars.update(proxy_dict)
+        proxy_dict = utils.get_proxy_dict(self.config)
+        if proxy_dict:
+            env_vars.update(proxy_dict)
 
         return env_vars
 
