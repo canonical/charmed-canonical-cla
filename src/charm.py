@@ -285,6 +285,8 @@ class FastAPICharm(ops.CharmBase):
         if proxy_dict:
             env_vars.update(proxy_dict)
 
+        env_vars["PYTHONPATH"] = "/srv"
+
         return env_vars
 
     def config_valid_values(self) -> Tuple[bool, str]:
