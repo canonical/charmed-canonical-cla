@@ -8,7 +8,7 @@ import ops
 import yaml
 from charms.data_platform_libs.v0.data_interfaces import DatabaseCreatedEvent, DatabaseRequires
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
-from charms.loki_k8s.v0.loki_push_api import LogProxyConsumer
+from charms.loki_k8s.v0.loki_push_api import LokiPushApiConsumer
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.redis_k8s.v0.redis import RedisRelationCharmEvents, RedisRequires
@@ -47,9 +47,7 @@ class FastAPICharm(ops.CharmBase):
             jobs=[{"static_configs": [{"targets": [f"*:{SERVICE_PORT}"]}]}],
         )
 
-        self._logging = LogProxyConsumer(
-            self, relation_name="log-proxy", log_files=["/var/log/app.log"]
-        )
+        self._logging = LokiPushApiConsumer(self, relation_name="log-proxy")
 
         # Provide grafana dashboards over a relation interface
         self._grafana_dashboards = GrafanaDashboardProvider(
@@ -222,14 +220,14 @@ class FastAPICharm(ops.CharmBase):
                 "--forwarded-allow-ips '*'",
             ]
         )
-        split_logs_command = "2>&1 | tee  >(while true; do sleep 600; truncate -s 0 /var/log/app.log; done) >/var/log/app.log"
+        # split_logs_command = "2>&1 | tee  >(while true; do sleep 600; truncate -s 0 /var/log/app.log; done) >/var/log/app.log"
         pebble_layer: ops.pebble.LayerDict = {
             "services": {
                 "app": {
                     "override": "replace",
                     "startup": "enabled",
                     "working-dir": "srv",
-                    "command": f'bash -c "{uvicorn_command} {split_logs_command}"',
+                    "command": uvicorn_command,
                     "environment": self.app_environment,
                     "on-check-failure": {
                         # restart on checks.up failure
@@ -237,6 +235,7 @@ class FastAPICharm(ops.CharmBase):
                     },
                 }
             },
+            "log-targets": self.pebble_log_targets,
             "checks": {
                 "test": {"override": "replace", "http": health_check_endpoint},
                 "online": {
@@ -288,6 +287,27 @@ class FastAPICharm(ops.CharmBase):
         env_vars["PYTHONPATH"] = "/srv"
 
         return env_vars
+
+    @property
+    def pebble_log_targets(self) -> Dict[str, ops.pebble.LogTargetDict]:
+        """Return a dictionary representing a Pebble log target.
+        [Pebble docs](https://github.com/canonical/pebble?tab=readme-ov-file#log-forwarding)."""
+        loki_push_api = cast(
+            Optional[str], next(iter(self._logging.loki_endpoints), {}).get("url", None)
+        )
+        if not loki_push_api:
+            logger.error("Loki push api not available")
+            return {}
+        else:
+            logger.info(f"Using Loki push api: {loki_push_api}")
+        return {
+            "logs": {
+                "override": "replace",
+                "type": "loki",
+                "location": loki_push_api,
+                "services": ["app"],
+            }
+        }
 
     def config_valid_values(self) -> Tuple[bool, str]:
         """Check if the config values are valid."""
