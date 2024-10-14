@@ -37,7 +37,7 @@ class FastAPICharm(ops.CharmBase):
         framework.observe(self.on.collect_unit_status, self._on_collect_status)
 
         framework.observe(self.on.migrate_db_action, self._on_migrate_db_action)
-
+        framework.observe(self.on.audit_logs_action, self._on_audit_logs_action)
         self.unit.open_port("tcp", SERVICE_PORT)
 
         # Provide ability for prometheus to be scraped by Prometheus using prometheus_scrape
@@ -158,11 +158,11 @@ class FastAPICharm(ops.CharmBase):
     def _on_migrate_db_action(self, event: ops.ActionEvent):
         """Handle the migrate-db action."""
         # if db relation is not available, we can't run migrations
-        db_relation = self.model.get_relation("database")
+        # db_relation = self.model.get_relation("database")
 
-        if not db_relation or not db_relation.active:
-            event.fail("Database relation is not available or ready yet")
-            return
+        # if not db_relation or not db_relation.active:
+        #     event.fail("Database relation is not available or ready yet")
+        #     return
 
         revision = event.params.get("revision", "head")
         cmd = ["alembic", "upgrade", revision]
@@ -187,6 +187,24 @@ class FastAPICharm(ops.CharmBase):
         except ops.pebble.ChangeError as e:
             event.fail(f"Failed to run migrations: {e}")
             return
+
+    def _on_audit_logs_action(self, event: ops.ActionEvent):
+        """Handle the audit-logs action."""
+        try:
+            since = event.params.get("since")
+            until = event.params.get("until")
+            cmd = ["python3", "/srv/scripts/audit_logs.py"]
+            if since:
+                cmd.append("--since")
+                cmd.append(since)
+            if until:
+                cmd.append("--until")
+                cmd.append(until)
+
+            logs = self.container.exec(cmd, environment=self.app_environment, combine_stderr=True)
+            event.set_results({"logs": logs})
+        except ops.model.ModelError as e:
+            event.fail(f"Failed to get logs: {e}")
 
     @property
     def _pebble_layer(self):

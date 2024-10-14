@@ -4,3 +4,12 @@ migrate-db:
     revision:
       description: "The revision to migrate to. If not specified, the latest revision will be used. The default value 'head'."
       type: string
+audit-logs:
+  description: "CLA service audit logs."
+  params:
+    since:
+      description: "The date to start the audit logs from. If not specified, the default value is 1 day ago. format: YYYY-MM-DD"
+      type: string
+    until:
+      description: "The date to end the audit logs. If not specified, the default value is today. format: YYYY-MM-DD"
+      type: string
