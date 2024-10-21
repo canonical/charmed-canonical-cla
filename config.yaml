@@ -13,6 +13,11 @@ options:
     description: |
       Environment in which the application is running.
     default: "development"
+  maintenance_mode:
+    type: boolean
+    description: |
+      Enable maintenance mode.
+    default: false
   sentry_dsn:
     type: string
     description: |

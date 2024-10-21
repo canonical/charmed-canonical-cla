@@ -39,8 +39,19 @@ The following integrations are essential in order of the Canonical CLA service t
 This will deploy the PostgreSQL charm and setup an empty database called `canonical-cla`:
 
 ```bash
+juju add-secret canonical-cla-database key1=value1
+juju grant-secret canonical-cla-database canonical-cla
+juju config canonical-cla database="secret:{id}"
 juju deploy postgresql-k8s
 juju integrate canonical-cla:database postgresql-k8s:database
+```
+
+In case of an existing externally managed database, it can be configured as the following:
+
+```bash
+juju add-secret canonical-cla-database database-host="localhost" database-port="5432" database-name="canonical-cla" database-username="postgres" database-password="postgres"
+juju grant-secret canonical-cla-database
+juju config canonical-cla database="secret:{id}"
 ```
 
 ### Redis
@@ -100,6 +111,14 @@ The charm provides an action to run the database migrations, this should be run 
 
 ```bash
 juju run-action canonical-cla/0 migrate-db [revision (default: head)]
+```
+
+### Switching to Maintenance Mode
+
+The API can be switched to maintenance mode which will disable CLA signing but it will keep CLA checking enabled (read-only mode):
+
+```bash
+juju config canonical-cla maintenance_mode=true
 ```
 
 ## License
