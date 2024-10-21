@@ -36,8 +36,8 @@ def fetch_secrets(charm: ops.CharmBase):
     """
     secrets_values = {}
     for v in charm.config.values():
-        if v.startswith("secret:"):
-            secret_value_dict = charm.model.get_secret(id=v).get_content(refresh=True)
+        if str(v).startswith("secret:"):
+            secret_value_dict = charm.model.get_secret(id=str(v)).get_content(refresh=True)
             secrets_values.update(secret_value_dict)
     parsed_secrets = Secret.parse(**secrets_values).dict()
     return {k.upper(): v for k, v in parsed_secrets.items()}

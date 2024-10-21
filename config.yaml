@@ -39,3 +39,7 @@ options:
     type: secret
     description: |
       SMTP server configuration (host, port, username, password).
+  database:
+    type: secret
+    description: |
+      Database configuration (host, port, name, username, password), this overrides the database relation.

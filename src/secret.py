@@ -12,6 +12,12 @@ class Secret(BaseModel):
     smtp_username: str
     smtp_password: str
 
+    db_host: str | None
+    db_port: int | None
+    db_name: str | None
+    db_username: str | None
+    db_password: str | None
+
     @staticmethod
     def parse(**kwargs):
         # replace - with _ and . with _

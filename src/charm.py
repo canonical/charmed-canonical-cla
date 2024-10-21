@@ -98,12 +98,11 @@ class FastAPICharm(ops.CharmBase):
             event.add_status(ops.MaintenanceStatus(error_message))
             logger.warning(f"{error_message}: %s", e)
             return
-        if not self.model.get_relation("database"):
-            error_message = (
-                "Waiting relation to database,  run 'juju integrate postgresql-k8s canonical-cla'"
-            )
-            event.add_status(ops.BlockedStatus(error_message))
-            logger.warning(error_message)
+
+        db_blocked_status = self.postgres_relation_blocked()
+        if db_blocked_status:
+            event.add_status(db_blocked_status)
+            logger.warning(db_blocked_status.message)
             return
         elif not self.fetch_postgres_relation_data():
             # We need the charms to finish integrating.
@@ -332,6 +331,17 @@ class FastAPICharm(ops.CharmBase):
             return False, f"Error fetching secrets: {e}"
         return True, ""
 
+    def postgres_relation_blocked(self) -> ops.StatusBase | None:
+        secrets = utils.fetch_secrets(self)
+        db_secret_provided = all(
+            secrets.get(key)
+            for key in ["db_host", "db_port", "db_name", "db_username", "db_password"]
+        )
+        if not db_secret_provided and not self.model.get_relation("database"):
+            error_message = "Waiting relation to database,  run 'juju integrate postgresql-k8s canonical-cla' or provide db secret"
+            logger.warning(error_message)
+            return ops.BlockedStatus(error_message)
+
     def fetch_postgres_relation_data(self) -> Dict | None:
         """Fetch postgres relation data.
 
@@ -341,21 +351,32 @@ class FastAPICharm(ops.CharmBase):
         endpoint information, username, and password. This processed data is then returned as
         a dictionary. If no data is retrieved, the unit is set to waiting status and
         the program exits with a zero status code."""
-        relations = self.database.fetch_relation_data()
-        if not relations:
-            return None
-        for data in relations.values():
-            if not data or not data.get("username"):
-                continue
-            host, port = data["endpoints"].split(":")
-            db_data = {
-                "DB_HOST": host,
-                "DB_PORT": port,
-                "DB_USERNAME": data["username"],
-                "DB_PASSWORD": data["password"],
-                "DB_DATABASE": DATABASE_NAME,
+        db_secret = utils.fetch_secrets(self)
+        if all(
+            db_secret.get(key)
+            for key in ["db_host", "db_port", "db_name", "db_username", "db_password"]
+        ):
+            return {
+                "DB_HOST": db_secret["db_host"],
+                "DB_PORT": db_secret["db_port"],
+                "DB_USERNAME": db_secret["db_username"],
+                "DB_PASSWORD": db_secret["db_password"],
+                "DB_DATABASE": db_secret["db_name"],
             }
-            return db_data
+        relations = self.database.fetch_relation_data()
+        if relations:
+            for data in relations.values():
+                if not data or not data.get("username"):
+                    continue
+                host, port = data["endpoints"].split(":")
+                db_data = {
+                    "DB_HOST": host,
+                    "DB_PORT": port,
+                    "DB_USERNAME": data["username"],
+                    "DB_PASSWORD": data["password"],
+                    "DB_DATABASE": DATABASE_NAME,
+                }
+                return db_data
         logger.warning("No database relation data available")
         return None
 
