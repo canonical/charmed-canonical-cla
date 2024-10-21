@@ -15,8 +15,9 @@ def map_config_to_env_vars(charm: ops.CharmBase, **additional_env):
     """
     env_mapped_config = {}
     for k, v in charm.config.items():
-        if not v.startswith("secret:"):
-            env_mapped_config.update({k.replace("-", "_").replace(".", "_").upper(): v})
+        if str(v).startswith("secret:"):
+            continue
+        env_mapped_config.update({k.replace("-", "_").replace(".", "_").upper(): v})
 
     env_mapped_config.update(fetch_secrets(charm))
 
