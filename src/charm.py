@@ -319,7 +319,7 @@ class FastAPICharm(ops.CharmBase):
             for config_name, config_meta in config_items.items():
                 is_secret = config_meta.get("type") == "secret"
                 config_value = self.config.get(config_name)
-                if not config_value:
+                if config_value is None:
                     resource_name = is_secret and "Secret" or "Config"
                     return False, f"{resource_name} value {config_name} is not set"
         except Exception as e:
