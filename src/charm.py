@@ -108,7 +108,7 @@ class FastAPICharm(ops.CharmBase):
             # We need the charms to finish integrating.
             event.add_status(ops.WaitingStatus("Waiting for database relation"))
             return
-        if not self.model.get_relation("redis"):
+        if not self.get_relation("redis"):
             error_message = (
                 "Waiting relation to redis,  run 'juju relate redis-k8s:redis canonical-cla:redis'"
             )
@@ -155,7 +155,7 @@ class FastAPICharm(ops.CharmBase):
     def _on_migrate_db_action(self, event: ops.ActionEvent):
         """Handle the migrate-db action."""
         # if db relation is not available, we can't run migrations
-        # db_relation = self.model.get_relation("database")
+        # db_relation = self.get_relation("database")
 
         # if not db_relation or not db_relation.active:
         #     event.fail("Database relation is not available or ready yet")
@@ -337,7 +337,7 @@ class FastAPICharm(ops.CharmBase):
             secrets.get(key)
             for key in ["db_host", "db_port", "db_name", "db_username", "db_password"]
         )
-        if not db_secret_provided and not self.model.get_relation("database"):
+        if not db_secret_provided and not self.get_relation("database"):
             error_message = "Waiting relation to database,  run 'juju integrate postgresql-k8s canonical-cla' or provide db secret"
             logger.warning(error_message)
             return ops.BlockedStatus(error_message)
@@ -399,6 +399,20 @@ class FastAPICharm(ops.CharmBase):
             "REDIS_HOST": hostname,
             "REDIS_PORT": port,
         }
+
+    def get_relation(self, name: str) -> ops.model.Relation | None:
+        """A modified version of the get_relation method that returns the relation object.
+        This method doesn't throw an exception if there are more that one relation with the same name.
+        It returns the first active relation object that matches the name.
+        If there are no relations with the given name, it returns None.
+        """
+        relations = self.model.relations[name]
+        active_relations = [relation for relation in relations if relation.active]
+        num_related = len(active_relations)
+
+        if num_related == 0:
+            return None
+        return active_relations[0]
 
 
 if __name__ == "__main__":  # pragma: nocover
