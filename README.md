@@ -110,7 +110,7 @@ The OCI image ID is automatically updated on each commit to the `main` branch to
 The charm provides an action to run the database migrations, this should be run on new migrations or on the first deployment:
 
 ```bash
-juju run-action canonical-cla/0 migrate-db [revision (default: head)]
+juju run canonical-cla/0 migrate-db [revision (default: head)]
 ```
 
 ### Switching to Maintenance Mode
