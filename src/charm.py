@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import Dict, Optional, Tuple, cast
+from typing import Dict, List, Optional, Tuple, cast
 
 import ops
 import yaml
@@ -33,11 +33,14 @@ class FastAPICharm(ops.CharmBase):
         # Define the charm events
         self.container = self.unit.get_container("app")
         framework.observe(self.on.config_changed, self._on_config_changed)
-        framework.observe(self.on.app_pebble_ready, self._update_layer_and_restart)
+        framework.observe(self.on.app_pebble_ready,
+                          self._update_layer_and_restart)
         framework.observe(self.on.collect_unit_status, self._on_collect_status)
 
-        framework.observe(self.on.migrate_db_action, self._on_migrate_db_action)
-        framework.observe(self.on.audit_logs_action, self._on_audit_logs_action)
+        framework.observe(self.on.migrate_db_action,
+                          self._on_migrate_db_action)
+        framework.observe(self.on.audit_logs_action,
+                          self._on_audit_logs_action)
         self.unit.open_port("tcp", SERVICE_PORT)
 
         # Provide ability for prometheus to be scraped by Prometheus using prometheus_scrape
@@ -61,10 +64,13 @@ class FastAPICharm(ops.CharmBase):
 
         # Redis relation
         self.redis = RedisRequires(self, relation_name="redis")
-        self.framework.observe(self.on.redis_relation_updated, self._on_redis_relation_changed)
+        self.framework.observe(
+            self.on.redis_relation_updated, self._on_redis_relation_changed)
 
-        self.framework.observe(self.database.on.database_created, self._on_database_created)
-        self.framework.observe(self.database.on.endpoints_changed, self._on_database_created)
+        self.framework.observe(
+            self.database.on.database_created, self._on_database_created)
+        self.framework.observe(
+            self.database.on.endpoints_changed, self._on_database_created)
 
         require_nginx_route(
             charm=self,
@@ -106,7 +112,8 @@ class FastAPICharm(ops.CharmBase):
             return
         elif not self.fetch_postgres_relation_data():
             # We need the charms to finish integrating.
-            event.add_status(ops.WaitingStatus("Waiting for database relation"))
+            event.add_status(ops.WaitingStatus(
+                "Waiting for database relation"))
             return
         if not self.get_relation("redis"):
             error_message = (
@@ -121,7 +128,8 @@ class FastAPICharm(ops.CharmBase):
             logger.warning(error_message)
             return
         elif not status.is_running():
-            event.add_status(ops.MaintenanceStatus("Waiting for the service to start up"))
+            event.add_status(ops.MaintenanceStatus(
+                "Waiting for the service to start up"))
         else:
             event.add_status(ops.ActiveStatus())
 
@@ -141,7 +149,8 @@ class FastAPICharm(ops.CharmBase):
             services = self.container.get_plan().to_dict().get("services", {})
             if services != new_layer_services:
                 # Changes were made, add the new layer
-                self.container.add_layer("app", self._pebble_layer, combine=True)
+                self.container.add_layer(
+                    "app", self._pebble_layer, combine=True)
                 logger.info(f"Added updated layer 'app' to Pebble plan")
                 if event and isinstance(event, ops.PebbleReadyEvent):
                     self.container.replan()
@@ -179,7 +188,8 @@ class FastAPICharm(ops.CharmBase):
             )
         except ops.pebble.ExecError as e:
             event.fail(f"Migration command failed: {e}")
-            event.set_results({"full-stderr": e.stderr, "full-stdout": e.stdout})
+            event.set_results(
+                {"full-stderr": e.stderr, "full-stdout": e.stdout})
             return
         except ops.pebble.ChangeError as e:
             event.fail(f"Failed to run migrations: {e}")
@@ -198,7 +208,8 @@ class FastAPICharm(ops.CharmBase):
                 cmd.append("--until")
                 cmd.append(until)
 
-            logs = self.container.exec(cmd, environment=self.app_environment, combine_stderr=True)
+            logs = self.container.exec(
+                cmd, environment=self.app_environment, combine_stderr=True)
             event.set_results({"logs": logs})
         except ops.model.ModelError as e:
             event.fail(f"Failed to get logs: {e}")
@@ -219,7 +230,7 @@ class FastAPICharm(ops.CharmBase):
                 "--forwarded-allow-ips '*'",
             ]
         )
-        # split_logs_command = "2>&1 | tee  >(while true; do sleep 600; truncate -s 0 /var/log/app.log; done) >/var/log/app.log"
+
         pebble_layer: ops.pebble.LayerDict = {
             "services": {
                 "app": {
@@ -290,23 +301,33 @@ class FastAPICharm(ops.CharmBase):
     @property
     def pebble_log_targets(self) -> Dict[str, ops.pebble.LogTargetDict]:
         """Return a dictionary representing a Pebble log target.
-        [Pebble docs](https://github.com/canonical/pebble?tab=readme-ov-file#log-forwarding)."""
-        loki_push_api = cast(
-            Optional[str], next(iter(self._logging.loki_endpoints), {}).get("url", None)
-        )
-        if not loki_push_api:
+        [Pebble docs](https://canonical-pebble.readthedocs-hosted.com/en/latest/reference/log-forwarding/)."""
+        loki_push_api_locations = cast(List[str], [endpoint.get(
+            "url") for endpoint in self._logging.loki_endpoints if endpoint.get("url")])
+        if not loki_push_api_locations:
             logger.error("Loki push api not available")
             return {}
         else:
-            logger.info(f"Using Loki push api: {loki_push_api}")
-        return {
-            "logs": {
-                "override": "replace",
-                "type": "loki",
-                "location": loki_push_api,
-                "services": ["app"],
+            logger.info(f"Loki push api locations: {loki_push_api_locations}")
+        base_log_target = {
+            "override": "replace",
+            "type": "loki",
+            "services": ["all"],
+            "labels": {
+                "product": "canonical-cla",
+                "charm": "canonical-cla",
+                "juju_unit": self.unit.name,
+                "juju_application": self.app.name,
             }
         }
+        targets = {}
+        for index, location in enumerate(loki_push_api_locations):
+            targets[f"loki-{index}"] = {
+                **base_log_target,
+                "location": location
+            }
+
+        return targets
 
     def config_valid_values(self) -> Tuple[bool, str]:
         """Check if the config values are valid."""
@@ -407,7 +428,8 @@ class FastAPICharm(ops.CharmBase):
         If there are no relations with the given name, it returns None.
         """
         relations = self.model.relations[name]
-        active_relations = [relation for relation in relations if relation.active]
+        active_relations = [
+            relation for relation in relations if relation.active]
         num_related = len(active_relations)
 
         if num_related == 0:
