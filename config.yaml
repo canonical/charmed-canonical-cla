@@ -22,11 +22,11 @@ options:
     type: string
     description: |
       Sentry DSN (optional).
-  smtp_legal_contact_email:
+  smtp_commmunity_contact_email:
     type: string
     description: |
-      Legal contact email address.
-    default: "Canonical's Legal Team <legal@canonical.com>"
+      Community contact email address.
+    default: "Canonical's Community Team <community@canonical.com>"
   rate_limit_whitelist:
     type: string
     description: |
