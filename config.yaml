@@ -22,7 +22,7 @@ options:
     type: string
     description: |
       Sentry DSN (optional).
-  smtp_commmunity_contact_email:
+  smtp_community_contact_email:
     type: string
     description: |
       Community contact email address.
