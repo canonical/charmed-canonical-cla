@@ -55,6 +55,8 @@ class FastAPICharm(ops.CharmBase):
         self.tracing = TracingEndpointRequirer(self, protocols=["otlp_grpc"])
         self.framework.observe(
             self.tracing.on.endpoint_changed, self._update_layer_and_restart)
+        self.framework.observe(
+            self.tracing.on.endpoint_removed, self._update_layer_and_restart)
 
         # Provide grafana dashboards over a relation interface
         self._grafana_dashboards = GrafanaDashboardProvider(
@@ -294,10 +296,12 @@ class FastAPICharm(ops.CharmBase):
         env_vars.update(redis_data)
 
         # add tracing endpoint if available
-        tracing_endpoint = self.tracing.get_endpoint("otlp_grpc")
-        if tracing_endpoint:
-            env_vars.update({"OTEL_EXPORTER_OTLP_ENDPOINT": tracing_endpoint})
-            
+        if self.tracing.is_ready():
+            tracing_endpoint = self.tracing.get_endpoint("otlp_grpc")
+            if tracing_endpoint:
+                env_vars.update(
+                    {"OTEL_EXPORTER_OTLP_ENDPOINT": tracing_endpoint})
+
         # apply proxy settings if available
         proxy_dict = utils.get_proxy_dict(self.config)
         if proxy_dict:
