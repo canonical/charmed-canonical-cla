@@ -16,8 +16,13 @@ requires:
     limit: 1
   nginx-route:
     interface: nginx-route
+    limit: 1
   redis:
     interface: redis
+    limit: 1
+  tracing:
+    interface: tracing
+    limit: 1
 provides:
   metrics-endpoint:
     interface: prometheus_scrape
