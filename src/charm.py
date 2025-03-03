@@ -52,7 +52,7 @@ class FastAPICharm(ops.CharmBase):
         )
 
         self._logging = LokiPushApiConsumer(self, relation_name="log-proxy")
-        self.tracing = TracingEndpointRequirer(self, protocols=["otlp_grpc"])
+        self.tracing = TracingEndpointRequirer(self, protocols=["otlp_http"])
         self.framework.observe(
             self.tracing.on.endpoint_changed, self._update_layer_and_restart)
         self.framework.observe(
@@ -297,7 +297,7 @@ class FastAPICharm(ops.CharmBase):
 
         # add tracing endpoint if available
         if self.tracing.is_ready():
-            tracing_endpoint = self.tracing.get_endpoint("otlp_grpc")
+            tracing_endpoint = self.tracing.get_endpoint("otlp_http")
             if tracing_endpoint:
                 env_vars.update(
                     {"OTEL_EXPORTER_OTLP_ENDPOINT": tracing_endpoint})
