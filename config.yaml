@@ -39,7 +39,11 @@ options:
   github_oauth:
     type: secret
     description: |
-      GitHub OAuth configuration (client ID and secret).
+      GitHub OAuth configuration (client_id, client_secret, scope?).
+  github_app:
+    type: secret
+    description: |
+      GitHub App credentials needed for webhook based service (id, private_key, secret)
   smtp:
     type: secret
     description: |
