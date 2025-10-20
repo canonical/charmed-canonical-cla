@@ -40,10 +40,10 @@ options:
     type: secret
     description: |
       GitHub OAuth configuration (client_id, client_secret, scope?).
-  github_app:
+  github:
     type: secret
     description: |
-      GitHub App credentials needed for webhook based service (id, private_key, secret)
+      GitHub App credentials needed for webhook based service (app-id, app-private-key, app-secret)
   smtp:
     type: secret
     description: |
