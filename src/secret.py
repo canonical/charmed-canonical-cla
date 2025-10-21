@@ -7,6 +7,10 @@ class Secret(BaseModel):
     github_oauth_client_id: str
     github_oauth_client_secret: str
 
+    github_app_id: str
+    github_app_private_key: str
+    github_app_secret: str
+    
     smtp_host: str
     smtp_port: int
     smtp_username: str
