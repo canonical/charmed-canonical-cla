@@ -20,9 +20,6 @@ requires:
   redis:
     interface: redis
     limit: 1
-  tracing:
-    interface: tracing
-    limit: 1
 provides:
   metrics-endpoint:
     interface: prometheus_scrape
