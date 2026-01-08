@@ -12,7 +12,6 @@ from charms.loki_k8s.v0.loki_push_api import LokiPushApiConsumer
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.redis_k8s.v0.redis import RedisRelationCharmEvents, RedisRequires
-from charms.tempo_coordinator_k8s.v0.tracing import TracingEndpointRequirer
 
 import utils
 
@@ -52,11 +51,6 @@ class FastAPICharm(ops.CharmBase):
         )
 
         self._logging = LokiPushApiConsumer(self, relation_name="log-proxy")
-        self.tracing = TracingEndpointRequirer(self, protocols=["otlp_http"])
-        self.framework.observe(
-            self.tracing.on.endpoint_changed, self._update_layer_and_restart)
-        self.framework.observe(
-            self.tracing.on.endpoint_removed, self._update_layer_and_restart)
 
         # Provide grafana dashboards over a relation interface
         self._grafana_dashboards = GrafanaDashboardProvider(
@@ -294,13 +288,6 @@ class FastAPICharm(ops.CharmBase):
             logger.warning("No redis relation data available")
             return {}
         env_vars.update(redis_data)
-
-        # add tracing endpoint if available
-        if self.tracing.is_ready():
-            tracing_endpoint = self.tracing.get_endpoint("otlp_http")
-            if tracing_endpoint:
-                env_vars.update(
-                    {"OTEL_EXPORTER_OTLP_ENDPOINT": tracing_endpoint})
 
         # apply proxy settings if available
         proxy_dict = utils.get_proxy_dict(self.config)
