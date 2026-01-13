@@ -247,16 +247,21 @@ class FastAPICharm(ops.CharmBase):
             },
             "log-targets": self.pebble_log_targets,
             "checks": {
-                "test": {"override": "replace", "http": health_check_endpoint},
+                # Check for readiness: the app is ready to serve requests
                 "online": {
                     "override": "replace",
                     "level": ops.pebble.CheckLevel.READY,
                     "http": health_check_endpoint,
+                    "period": "30s",
+                    "threshold": 3,
                 },
+                # Check for liveness: the app is alive and running
                 "up": {
                     "override": "replace",
                     "level": ops.pebble.CheckLevel.ALIVE,
                     "http": health_check_endpoint,
+                    "period": "30s",
+                    "threshold": 3,
                 },
             },
         }
