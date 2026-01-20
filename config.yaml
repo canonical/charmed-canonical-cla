@@ -44,6 +44,10 @@ options:
     type: secret
     description: |
       GitHub App credentials needed for webhook based service (app-id, app-private-key, app-secret)
+  canonical_oidc:
+    type: secret
+    description: |
+      Canonical OIDC configuration (client_id, client_secret, server_url?, scope?, token_endpoint_auth_method?).
   smtp:
     type: secret
     description: |
