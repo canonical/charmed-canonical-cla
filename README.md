@@ -31,7 +31,7 @@ juju config canonical-cla smtp="secret:{id}"
 
 juju add-secret canonical-cla-canonical-oidc canonical-oidc-client-id="abc" canonical-oidc-client-secret="def"
 juju grant-secret canonical-cla-canonical-oidc canonical-cla
-juju config canonical-cla canonical-oidc="secret:{id}"
+juju config canonical-cla canonical_oidc="secret:{id}"
 
 ```
 

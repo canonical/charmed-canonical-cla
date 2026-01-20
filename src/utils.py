@@ -45,7 +45,8 @@ def fetch_secrets(charm: ops.CharmBase):
     parsed_secrets = Secret.parse(**secrets_values).dict()
     secrets = {}
     for k, v in parsed_secrets.items():
-        if v:
+        # avoid setting empty strings
+        if not (isinstance(v, str) and v == ""):
             secrets[k.upper()] = v
     return secrets
 
