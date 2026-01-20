@@ -22,6 +22,13 @@ class Secret(BaseModel):
     db_username: str | None
     db_password: str | None
 
+    canonical_oidc_client_id: str
+    canonical_oidc_client_secret: str
+    canonical_oidc_server_url: str | None
+    canonical_oidc_scope: str | None
+    canonical_oidc_token_endpoint_auth_method: str | None
+
+
     @staticmethod
     def parse(**kwargs):
         # replace - with _ and . with _
