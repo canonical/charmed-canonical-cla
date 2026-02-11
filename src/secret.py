@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 class Secret(BaseModel):
     secret_key: str
+    internal_api_secret: str
 
     github_oauth_client_id: str
     github_oauth_client_secret: str
@@ -10,7 +11,7 @@ class Secret(BaseModel):
     github_app_id: str
     github_app_private_key: str
     github_app_secret: str
-    
+
     smtp_host: str
     smtp_port: int
     smtp_username: str
@@ -27,7 +28,6 @@ class Secret(BaseModel):
     canonical_oidc_server_url: str | None
     canonical_oidc_scope: str | None
     canonical_oidc_token_endpoint_auth_method: str | None
-
 
     @staticmethod
     def parse(**kwargs):

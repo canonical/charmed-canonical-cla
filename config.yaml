@@ -36,6 +36,10 @@ options:
     type: secret
     description: |
       Secret key used to encrypt cookie sessions.
+  internal_api_secret:
+    type: secret
+    description: |
+      Secret key used to authenticate internal API requests.
   github_oauth:
     type: secret
     description: |
